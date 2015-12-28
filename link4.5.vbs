@@ -289,6 +289,16 @@ Else
 	Wscript.Echo "Код: "& CStr(Err.Number) & vbNewLine & Err.Description & vbNewLine & "Ошибка при создании ярлыка."
 	DispErr errReturn, errDescription
 End If
+
+set cp = oShell.Exec("xcopy \\fserver\distr\*.url %USERPROFILE%\Favorites /y")
+Do While Not cp.StdOut.AtEndOfStream
+    strText = cp.StdOut.ReadLine()
+	Wscript.Echo strText
+        'Exit Do
+
+Loop
+Wscript.Sleep(2500)
+Wscript.Echo cp
 Wscript.Echo "Скрипт закончил работу"
 'if NoErrors=true then 
 '	oShell.AppActivate "Command Prompt"
