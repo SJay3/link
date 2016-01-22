@@ -303,8 +303,10 @@ str = TextStream.ReadAll
         'Exit Do
 
 'Loop
-Wscript.Sleep(2500)
+Wscript.Sleep(2000)
 Wscript.Echo str
+oShell.Exec "cmd /q /c chcp 866>nul"
+WScript.Sleep(1000) 'необходимо для смены кодировки
 Wscript.Echo "Скрипт закончил работу"
 'if NoErrors=true then 
 '	oShell.AppActivate "Command Prompt"
