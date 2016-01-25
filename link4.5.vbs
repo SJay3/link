@@ -10,7 +10,7 @@ strTranslator = objFS.GetBaseName(WScript.FullName)
 If StrComp(strTranslator, "wscript", vbTextCompare) = 0 Then
     WScript.Echo "Сервер сценариев по умолчанию: " & UCase(strTranslator) & vbNewLine & "Работаем в режиме перезапуска с другим сервером сценарие."
     Set objWShell = CreateObject("WScript.Shell")
-    objWShell.Run "cmd /c echo off && cscript.exe " & WScript.ScriptFullName, 1 ' cmd /c echo off && 
+    objWShell.Run "cmd /c echo off && chcp && cscript.exe " & WScript.ScriptFullName, 1 ' cmd /c echo off && 
 	Wscript.Quit 0
 Else
     WScript.Echo "Сервер сценариев по умолчанию: " & UCase(strTranslator) & vbNewLine & "Работаем в штатном режиме."
@@ -289,6 +289,24 @@ Else
 	Wscript.Echo "Код: "& CStr(Err.Number) & vbNewLine & Err.Description & vbNewLine & "Ошибка при создании ярлыка."
 	DispErr errReturn, errDescription
 End If
+
+'копирование избранного
+set cp = oShell.Exec("cmd /q /k echo off")
+cp.StdIn.WriteLine "chcp 1251>nul" ' необходимо для вывода отчета в основное окно в нормальной кодировке
+cp.StdIn.WriteLine "xcopy \\fserver\distr\*.url %USERPROFILE%\Favorites /y"
+cp.StdIn.WriteLine "exit"
+set TextStream = cp.StdOut
+str = TextStream.ReadAll
+'Do While Not cp.StdOut.AtEndOfStream
+   ' strText = cp.StdOut.ReadLine()
+	'Wscript.Echo strText
+        'Exit Do
+
+'Loop
+Wscript.Sleep(2000)
+Wscript.Echo str
+oShell.Exec "cmd /q /c chcp 866>nul"
+WScript.Sleep(1000) 'необходимо для смены кодировки
 Wscript.Echo "Скрипт закончил работу"
 'if NoErrors=true then 
 '	oShell.AppActivate "Command Prompt"
