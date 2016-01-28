@@ -43,11 +43,11 @@ End Function
 
 Set oShell = WScript.CreateObject("WScript.Shell")
 Dim pDesk, sUName
-pDesk = oShell.SpecialFolders("Desktop")
-sUName = oShell.ExpandEnvironmentStrings("%USERNAME%")
+pDesk = oShell.SpecialFolders("Desktop") ' путь к рабочему столу
+sUName = oShell.ExpandEnvironmentStrings("%USERNAME%") 'имя пользователя
 ' Создаем массивы с путями и переменными
 Dim n 'количество элементов массива
-n = 3
+n = 4
 Dim aName(), aPath()
 ReDim aName(n), aPath(n)
 aName(0) = "fserver"
@@ -58,28 +58,16 @@ aName(2) = "CПРАВОЧНИК СОТРУДНИКА КОМПАНИИ"
 aPath(2) = aPath(1) & "\Документы компании и др . инфо\" & aName(2)
 aName(3) = sUName & " (10Гб)"
 aPath(3) = aPath(0) & "\" & sUName
-
-' Создание ярлыков:
-for i=0 to n 'цикл для массивов
-'On Error Resume Next
-Set oShellLink = oShell.CreateShortcut(pDesk & "\" & aName(i) & ".lnk")
-' Целевой путь к файлу для которого создаётся ярлык:
-oShellLink.TargetPath = aPath(i)
-if Err.Number=0 then 
-	oShellLink.Save
-	Wscript.Echo "Создан ярлык: " & aName(i)
-Else
-	Wscript.Echo "Код: "& CStr(Err.Number) & vbNewLine & Err.Description & vbNewLine & "Ошибка при создании ярлыка."
-End If
-next
+aName(4) = "Папка для обмена файлами по сети"
+aPath(4) = oShell.ExpandEnvironmentStrings("%USERPROFILE%") & "\Documents\" & aName(4)
 
 
 ' создаем папку для обмена файлами и выносим ярлык
-name="Папка для обмена файлами по сети"
-fPath = sUName & "\Documents\" & name
+'name="Папка для обмена файлами по сети"
+'fPath = oShell.ExpandEnvironmentStrings("%USERPROFILE%") & "\Documents\" & name
 Set fso=WScript.CreateObject("Scripting.FileSystemObject") 
 ' Если папки не существует, то создаем папку
-if Not fso.FolderExists(fPath) then fso.CreateFolder(fPath)
+if Not fso.FolderExists(aPath(4)) then fso.CreateFolder(aPath(4))
 
 dim objSD, objACE
 Const FILE_SHARE = 0
@@ -88,9 +76,9 @@ Const ACCESS = 1245631 'маска на чтение и изменение в разрешениях общего доступа
 strComputer = "."
 Set objWMI = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
 Set objNewShare = objWMI.Get("Win32_Share")
-errReturn = objNewShare.Create (fPath, name, FILE_SHARE, MAXIMUM_CONNECTIONS)
+errReturn = objNewShare.Create (aPath(4), aName(4), FILE_SHARE, MAXIMUM_CONNECTIONS)
 if errReturn=0 then
-	set objSecSettings = objWMI.Get("Win32_LogicalShareSecuritySetting.Name='" & name & "'")
+	set objSecSettings = objWMI.Get("Win32_LogicalShareSecuritySetting.Name='" & aName(4) & "'")
 	If objSecSettings.GetSecurityDescriptor(objSD) = 0 Then
             If Not IsNull(objSD.DACL) Then
                 For Each objACE In objSD.DACL
@@ -110,20 +98,20 @@ if errReturn=0 then
 						DispErr errReturn, errDescription
                 End Select
             Else
-                errDescription = "Список управления доступом к ресурсу " & UCase(name) & " пуст."
+                errDescription = "Список управления доступом к ресурсу " & UCase(aName(4)) & " пуст."
 				DispErr errReturn, errDescription
             End If
 	Else
-		errDescription = "Не удалось прочитать дескриптор безопасности ресурса " & UCase(name)
+		errDescription = "Не удалось прочитать дескриптор безопасности ресурса " & UCase(aName(4))
 		DispErr errReturn, errDescription
 	End If
 	Set objSD = Nothing
     Set objSecSettings = Nothing
 ElseIf errReturn=22 then
-	errDescription = "Ошибка " & errReturn & ": Общий ресурс " & UCase(name) & " уже существует"
+	errDescription = "Ошибка " & errReturn & ": Общий ресурс " & UCase(aName(4)) & " уже существует"
 	DispErr errReturn, errDescription
 Else
-    errDescription = "Ошибка " & errReturn & " при создании ресурса общего доступа " & UCase(name)
+    errDescription = "Ошибка " & errReturn & " при создании ресурса общего доступа " & UCase(aName(4))
 	DispErr errReturn, errDescription
 End If
 Wscript.Echo errDescription
@@ -135,7 +123,7 @@ Dim strPath, xResult, xErr
 strAccount = "Все"
 
 If StrComp(strAccount, "Система", vbTextCompare) = 0 Then strAccount = "System"
-        strPath = fPath
+        strPath = aPath(4)
         Set objWsNet = CreateObject("WScript.Network")
         strComputer = objWsNet.ComputerName
         Set objWsNet = Nothing        
@@ -162,7 +150,7 @@ If StrComp(strAccount, "Система", vbTextCompare) = 0 Then strAccount = "System"
 			DispErr xErr, xResult
 		end If
 
-' Функция добавления разрешений NTFS (вкладка "безопасность")
+'----------------#Функция добавления разрешений NTFS (вкладка "безопасность")#-----------------------------------------
 Function Set_RWEAccess(strDom, strComp, strSAN, strDir)
 Dim objWMI, objSecSettings, objSD, objACE
 Dim xRes, arrACE, objCollection, objItem, strSID
@@ -262,17 +250,21 @@ Set objWMI = Nothing
 On Error GoTo 0
 Set_RWEAccess = xRes
 End Function
+'----------------------------------------------#конец функции#--------------------------------------------
 
+' Создание ярлыков:
+for i=0 to 4 'цикл для массивов
 On Error Resume Next
-set oShellLink = oShell.CreateShortcut(pDesk & "\" & name & ".lnk")
-oShellLink.TargetPath = fPath
-if Err.Number=0 then
+Set oShellLink = oShell.CreateShortcut(pDesk & "\" & aName(i) & ".lnk")
+' Целевой путь к файлу для которого создаётся ярлык:
+oShellLink.TargetPath = aPath(i)
+if Err.Number=0 then 
 	oShellLink.Save
-	Wscript.Echo "Ярлык на Папку для обмена файлами по сети"
+	Wscript.Echo "Создан ярлык: " & aName(i)
 Else
 	Wscript.Echo "Код: "& CStr(Err.Number) & vbNewLine & Err.Description & vbNewLine & "Ошибка при создании ярлыка."
-	DispErr errReturn, errDescription
 End If
+next
 
 'копирование избранного
 set cp = oShell.Exec("cmd /q /k echo off")
