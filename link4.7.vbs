@@ -1,4 +1,4 @@
-' Скрипт по созданию ярлыков. Версия: 4.7
+' Скрипт по созданию ярлыков. Версия: 4.8
 ' Выводит ошибки на экран и в командную строку.
 ' Создает основные ярлыки
 ' Создает расшареную папку для обмена и добавляет в нее разрешения
@@ -33,122 +33,14 @@ Set objWShell = Nothing: Set objFS = Nothing
 Dim NoErrors ' флаг ошибок
 NoErrors = true
 
+'#####################################################Function Block####################################
 
+'--------------------------#Функция вывода ошибок в поп-ап окне#---------------------------------------------------
 Function DispErr(NErr, DErr) 'Вывод ошибок в поп-ап окне
 	NoErrors = False
 	oShell.Popup "Код: "& NErr & vbNewLine & DErr & vbNewLine, , Wscript.ScriptFullName & ". Error", 0 + 16
 End Function
-
-'создание ярлыков на рабочем столе
-
-Set oShell = WScript.CreateObject("WScript.Shell")
-Dim pDesk, sUName
-pDesk = oShell.SpecialFolders("Desktop") ' путь к рабочему столу
-sUName = oShell.ExpandEnvironmentStrings("%USERNAME%") 'имя пользователя
-' Создаем массивы с путями и переменными
-Dim n 'количество элементов массива
-n = 4
-Dim aName(), aPath()
-ReDim aName(n), aPath(n)
-aName(0) = "fserver"
-aPath(0) = "\\" & aName(0)
-aName(1) = "СЛУЖЕБНАЯ_ПАПКА_МАСКОМ"
-aPath(1) = aPath(0) & "\mascom\" & aName(1)
-aName(2) = "CПРАВОЧНИК СОТРУДНИКА КОМПАНИИ"
-aPath(2) = aPath(1) & "\Документы компании и др . инфо\" & aName(2)
-aName(3) = sUName & " (10Гб)"
-aPath(3) = aPath(0) & "\" & sUName
-aName(4) = "Папка для обмена файлами по сети"
-aPath(4) = oShell.ExpandEnvironmentStrings("%USERPROFILE%") & "\Documents\" & aName(4)
-
-
-' создаем папку для обмена файлами
-'name="Папка для обмена файлами по сети"
-'fPath = oShell.ExpandEnvironmentStrings("%USERPROFILE%") & "\Documents\" & name
-Set fso=WScript.CreateObject("Scripting.FileSystemObject") 
-' Если папки не существует, то создаем папку
-if Not fso.FolderExists(aPath(4)) then fso.CreateFolder(aPath(4))
-
-dim objSD, objACE
-Const FILE_SHARE = 0
-Const MAXIMUM_CONNECTIONS = 25
-Const ACCESS = 1245631 'маска на чтение и изменение в разрешениях общего доступа
-strComputer = "."
-Set objWMI = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
-Set objNewShare = objWMI.Get("Win32_Share")
-errReturn = objNewShare.Create (aPath(4), aName(4), FILE_SHARE, MAXIMUM_CONNECTIONS)
-if errReturn=0 then
-	set objSecSettings = objWMI.Get("Win32_LogicalShareSecuritySetting.Name='" & aName(4) & "'")
-	If objSecSettings.GetSecurityDescriptor(objSD) = 0 Then
-            If Not IsNull(objSD.DACL) Then
-                For Each objACE In objSD.DACL
-                    objACE.AccessMask = ACCESS
-                Next
-                Set objACE = Nothing
-                errReturn = objSecSettings.SetSecurityDescriptor(objSD)
-                Select Case errReturn
-                    Case 0: errDescription = "Успешное завершение. Папка расшарена"
-                    Case 2: errDescription = "Отсутствует доступ к необходимой информации." 
-						DispErr errReturn, errDescription
-                    Case 9: errDescription = "Для выполнения операции недостаточно полномочий."
-						DispErr errReturn, errDescription
-                    Case 21: errDescription = "Заданы недопустимые значения параметров."
-						DispErr errReturn, errDescription
-                    Case Else: errDescription = "Неизвестная ошибка с кодом: " & errReturn
-						DispErr errReturn, errDescription
-                End Select
-            Else
-                errDescription = "Список управления доступом к ресурсу " & UCase(aName(4)) & " пуст."
-				DispErr errReturn, errDescription
-            End If
-	Else
-		errDescription = "Не удалось прочитать дескриптор безопасности ресурса " & UCase(aName(4))
-		DispErr errReturn, errDescription
-	End If
-	Set objSD = Nothing
-    Set objSecSettings = Nothing
-ElseIf errReturn=22 then
-	errDescription = "Ошибка " & errReturn & ": Общий ресурс " & UCase(aName(4)) & " уже существует"
-	DispErr errReturn, errDescription
-Else
-    errDescription = "Ошибка " & errReturn & " при создании ресурса общего доступа " & UCase(aName(4))
-	DispErr errReturn, errDescription
-End If
-Wscript.Echo errDescription
-
-'Добавление пользоватля в разрешения NTFS
-Dim objWsNet, strDomain, strComputer, strAccount
-Dim strPath, xResult, xErr
-
-strAccount = "Все"
-
-If StrComp(strAccount, "Система", vbTextCompare) = 0 Then strAccount = "System"
-        strPath = aPath(4)
-        Set objWsNet = CreateObject("WScript.Network")
-        strComputer = objWsNet.ComputerName
-        Set objWsNet = Nothing        
-        If StrComp(strAccount, "System", vbTextCompare) <> 0 And StrComp(strAccount, "Все", vbTextCompare) <> 0 Then
-            strDomain = strComputer
-        Else
-            strDomain = vbNullString
-        End If
-        xErr = Set_RWEAccess(strDomain, strComputer, strAccount, strPath)
-        If IsNumeric(xErr) Then xErr = CStr(xErr)
-        Select Case xErr
-            Case "-3": xResult = "Не удалось настроить параметры доступа существующей записи " & UCase(strDomain & "\" & strAccount)
-            Case "-2": xResult = "Не найдена учётная запись объекта " & UCase(strDomain & "\" & strAccount)
-            Case "-1": xResult = "Не удалось отключить наследование безопасности у папки " & UCase(strPath)
-            Case "0": Wscript.Echo "Успешное завершение. Права NTFS добавлены"
-            Case "2": xResult = "Доступ запрещён."
-            Case "8": xResult = "Неизвестная ошибка."
-            Case "5", "9": xResult = "Для выполнения операции недостаточно полномочий."
-            Case "21": xResult = "Заданы недопустимые значения параметров."
-            Case Else: WScript.Echo xErr
-        End Select
-		if xErr <> 0 then 
-			Wscript.Echo xErr & ": " & xResult
-			DispErr xErr, xResult
-		end If
+'----------------------------------------------#конец функции#--------------------------------------------
 
 '----------------#Функция добавления разрешений NTFS (вкладка "безопасность")#-----------------------------------------
 Function Set_RWEAccess(strDom, strComp, strSAN, strDir)
@@ -251,9 +143,125 @@ On Error GoTo 0
 Set_RWEAccess = xRes
 End Function
 '----------------------------------------------#конец функции#--------------------------------------------
+'#################################################Function Block End########################################
+
+'~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Main Program~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+'создание ярлыков на рабочем столе
+Set oShell = WScript.CreateObject("WScript.Shell")
+Dim pDesk, sUName
+pDesk = oShell.SpecialFolders("Desktop") ' путь к рабочему столу
+sUName = oShell.ExpandEnvironmentStrings("%USERNAME%") 'имя пользователя
+' Создаем массивы с путями и переменными
+Dim n 'количество элементов массива
+n = 4 ' массив начинается с 0
+Dim aName(), aPath() 'Массивы с именами и путями
+ReDim aName(n), aPath(n)
+aName(0) = "fserver"
+aPath(0) = "\\" & aName(0)
+aName(1) = "СЛУЖЕБНАЯ_ПАПКА_МАСКОМ"
+aPath(1) = aPath(0) & "\mascom\" & aName(1)
+aName(2) = "CПРАВОЧНИК СОТРУДНИКА КОМПАНИИ"
+aPath(2) = aPath(1) & "\Документы компании и др . инфо\" & aName(2)
+aName(3) = sUName & " (10Гб)"
+aPath(3) = aPath(0) & "\" & sUName
+aName(4) = "Папка для обмена файлами по сети"
+aPath(4) = oShell.ExpandEnvironmentStrings("%USERPROFILE%") & "\Documents\" & aName(4)
+
+' создаем папку для обмена файлами
+'name="Папка для обмена файлами по сети"
+'fPath = oShell.ExpandEnvironmentStrings("%USERPROFILE%") & "\Documents\" & name
+
+for i=0 to n '----------------------#цикл для массивов#--------------
+if i=4 then '-------#if для обмена файлами#---------------
+	Set fso=WScript.CreateObject("Scripting.FileSystemObject") 
+	' Если папки не существует, то создаем папку
+	if Not fso.FolderExists(aPath(i)) then fso.CreateFolder(aPath(i))
+	
+	'Расшариваем папку
+	dim objSD, objACE
+	Const FILE_SHARE = 0
+	Const MAXIMUM_CONNECTIONS = 25
+	Const ACCESS = 1245631 'маска на чтение и изменение в разрешениях общего доступа
+	strComputer = "."
+	Set objWMI = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+	Set objNewShare = objWMI.Get("Win32_Share")
+	errReturn = objNewShare.Create (aPath(i), aName(i), FILE_SHARE, MAXIMUM_CONNECTIONS)
+	if errReturn=0 then
+		set objSecSettings = objWMI.Get("Win32_LogicalShareSecuritySetting.Name='" & aName(i) & "'")
+		If objSecSettings.GetSecurityDescriptor(objSD) = 0 Then
+				If Not IsNull(objSD.DACL) Then
+					For Each objACE In objSD.DACL
+						objACE.AccessMask = ACCESS
+					Next
+					Set objACE = Nothing
+					errReturn = objSecSettings.SetSecurityDescriptor(objSD)
+					Select Case errReturn
+						Case 0: errDescription = "Успешное завершение. Папка расшарена"
+						Case 2: errDescription = "Отсутствует доступ к необходимой информации." 
+							DispErr errReturn, errDescription
+						Case 9: errDescription = "Для выполнения операции недостаточно полномочий."
+							DispErr errReturn, errDescription
+						Case 21: errDescription = "Заданы недопустимые значения параметров."
+							DispErr errReturn, errDescription
+						Case Else: errDescription = "Неизвестная ошибка с кодом: " & errReturn
+							DispErr errReturn, errDescription
+					End Select
+				Else
+					errDescription = "Список управления доступом к ресурсу " & UCase(aName(4)) & " пуст."
+					DispErr errReturn, errDescription
+				End If
+		Else
+			errDescription = "Не удалось прочитать дескриптор безопасности ресурса " & UCase(aName(4))
+			DispErr errReturn, errDescription
+		End If
+		Set objSD = Nothing
+		Set objSecSettings = Nothing
+	ElseIf errReturn=22 then
+		errDescription = "Ошибка " & errReturn & ": Общий ресурс " & UCase(aName(4)) & " уже существует"
+		DispErr errReturn, errDescription
+	Else
+		errDescription = "Ошибка " & errReturn & " при создании ресурса общего доступа " & UCase(aName(4))
+		DispErr errReturn, errDescription
+	End If
+	Wscript.Echo errDescription
+
+	'Добавление пользоватля в разрешения NTFS
+	Dim objWsNet, strDomain, strComputer, strAccount
+	Dim strPath, xResult, xErr
+
+	strAccount = "Все" 'Пользователь, которого необходимо добавить
+
+	If StrComp(strAccount, "Система", vbTextCompare) = 0 Then strAccount = "System"
+        strPath = aPath(i)
+        Set objWsNet = CreateObject("WScript.Network")
+        strComputer = objWsNet.ComputerName
+        Set objWsNet = Nothing        
+        If StrComp(strAccount, "System", vbTextCompare) <> 0 And StrComp(strAccount, "Все", vbTextCompare) <> 0 Then
+            strDomain = strComputer
+        Else
+            strDomain = vbNullString
+        End If
+        xErr = Set_RWEAccess(strDomain, strComputer, strAccount, strPath)
+        If IsNumeric(xErr) Then xErr = CStr(xErr)
+        Select Case xErr
+            Case "-3": xResult = "Не удалось настроить параметры доступа существующей записи " & UCase(strDomain & "\" & strAccount)
+            Case "-2": xResult = "Не найдена учётная запись объекта " & UCase(strDomain & "\" & strAccount)
+            Case "-1": xResult = "Не удалось отключить наследование безопасности у папки " & UCase(strPath)
+            Case "0": Wscript.Echo "Успешное завершение. Права NTFS добавлены"
+            Case "2": xResult = "Доступ запрещён."
+            Case "8": xResult = "Неизвестная ошибка."
+            Case "5", "9": xResult = "Для выполнения операции недостаточно полномочий."
+            Case "21": xResult = "Заданы недопустимые значения параметров."
+            Case Else: WScript.Echo xErr
+        End Select
+		if xErr <> 0 then 
+			Wscript.Echo xErr & ": " & xResult
+			DispErr xErr, xResult
+		end If
+end if '----------#конец if для обмена файлами#------------------
 
 ' Создание ярлыков:
-for i=0 to 4 'цикл для массивов
 On Error Resume Next
 Set oShellLink = oShell.CreateShortcut(pDesk & "\" & aName(i) & ".lnk")
 ' Целевой путь к файлу для которого создаётся ярлык:
@@ -264,7 +272,8 @@ if Err.Number=0 then
 Else
 	Wscript.Echo "Код: "& CStr(Err.Number) & vbNewLine & Err.Description & vbNewLine & "Ошибка при создании ярлыка."
 End If
-next
+
+next ' --------------------##конеч цикла массивов##------------------------------
 
 'копирование избранного
 set cp = oShell.Exec("cmd /q /k echo off")
@@ -285,7 +294,4 @@ oShell.Exec "cmd /q /c chcp 866>nul"
 WScript.Sleep(1000) 'необходимо для смены кодировки
 Wscript.Echo "Скрипт закончил работу"
 
-
 Wscript.Sleep(5000)
-
-	
