@@ -62,7 +62,7 @@ aName(4) = "Папка для обмена файлами по сети"
 aPath(4) = oShell.ExpandEnvironmentStrings("%USERPROFILE%") & "\Documents\" & aName(4)
 
 
-' создаем папку для обмена файлами и выносим ярлык
+' создаем папку для обмена файлами
 'name="Папка для обмена файлами по сети"
 'fPath = oShell.ExpandEnvironmentStrings("%USERPROFILE%") & "\Documents\" & name
 Set fso=WScript.CreateObject("Scripting.FileSystemObject") 
