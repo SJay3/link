@@ -272,6 +272,7 @@ if Err.Number=0 then
 	Wscript.Echo "—оздан €рлык: " & aName(i)
 Else
 	Wscript.Echo " од: "& CStr(Err.Number) & vbNewLine & Err.Description & vbNewLine & "ќшибка при создании €рлыка."
+	DispErr errReturn, errDescription
 End If
 
 next ' --------------------##конеч цикла массивов##------------------------------
