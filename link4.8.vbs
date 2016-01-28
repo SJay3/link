@@ -209,20 +209,20 @@ if i=4 then '-------#if для обмена файлами#---------------
 							DispErr errReturn, errDescription
 					End Select
 				Else
-					errDescription = "Список управления доступом к ресурсу " & UCase(aName(4)) & " пуст."
+					errDescription = "Список управления доступом к ресурсу " & UCase(aName(i)) & " пуст."
 					DispErr errReturn, errDescription
 				End If
 		Else
-			errDescription = "Не удалось прочитать дескриптор безопасности ресурса " & UCase(aName(4))
+			errDescription = "Не удалось прочитать дескриптор безопасности ресурса " & UCase(aName(i))
 			DispErr errReturn, errDescription
 		End If
 		Set objSD = Nothing
 		Set objSecSettings = Nothing
 	ElseIf errReturn=22 then
-		errDescription = "Ошибка " & errReturn & ": Общий ресурс " & UCase(aName(4)) & " уже существует"
+		errDescription = "Ошибка " & errReturn & ": Общий ресурс " & UCase(aName(i)) & " уже существует"
 		DispErr errReturn, errDescription
 	Else
-		errDescription = "Ошибка " & errReturn & " при создании ресурса общего доступа " & UCase(aName(4))
+		errDescription = "Ошибка " & errReturn & " при создании ресурса общего доступа " & UCase(aName(i))
 		DispErr errReturn, errDescription
 	End If
 	Wscript.Echo errDescription
