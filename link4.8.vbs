@@ -10,10 +10,11 @@
 Dim objFS, objWShell, strTranslator
 Set objFS = CreateObject("Scripting.FileSystemObject")
 strTranslator = objFS.GetBaseName(WScript.FullName)
+Wscript.Echo Wscript.ScriptFullName
 If StrComp(strTranslator, "wscript", vbTextCompare) = 0 Then
     WScript.Echo "Сервер сценариев по умолчанию: " & UCase(strTranslator) & vbNewLine & "Работаем в режиме перезапуска с другим сервером сценарие."
     Set objWShell = CreateObject("WScript.Shell")
-    objWShell.Run "cmd /c echo off && chcp && cscript.exe " & WScript.ScriptFullName, 1 ' cmd /c echo off && 
+    objWShell.Run "cmd /c echo off && chcp && cscript.exe """ & WScript.ScriptFullName & """", 1  ' cmd /c echo off && 
 	Wscript.Quit 0
 Else
     WScript.Echo "Сервер сценариев по умолчанию: " & UCase(strTranslator) & vbNewLine & "Работаем в штатном режиме."
