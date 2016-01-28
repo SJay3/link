@@ -1,5 +1,8 @@
-' Скрипт по созданию ярлыков. Версия: 4.6
+' Скрипт по созданию ярлыков. Версия: 4.7
 ' Выводит ошибки на экран и в командную строку.
+' Создает основные ярлыки
+' Создает расшареную папку для обмена и добавляет в нее разрешения
+' Копирует url-ярлыки с сервера в избранное
 'Работает для Windows 7
 'Для ХР надо писать Мои Документы, при создании расшаренной папки
 
@@ -31,68 +34,49 @@ Dim NoErrors ' флаг ошибок
 NoErrors = true
 
 
-
-Function DispErr(NErr, DErr)
+Function DispErr(NErr, DErr) 'Вывод ошибок в поп-ап окне
 	NoErrors = False
 	oShell.Popup "Код: "& NErr & vbNewLine & DErr & vbNewLine, , Wscript.ScriptFullName & ". Error", 0 + 16
 End Function
 
 'создание ярлыков на рабочем столе
-Dim sServer 
-sServer = "fserver" ' записываем имя сервера в переменную
 
 Set oShell = WScript.CreateObject("WScript.Shell")
-' Создание ярлыка на fserver:
-On Error Resume Next
-Set oShellLink = oShell.CreateShortcut(oShell.SpecialFolders("Desktop") & "\" & sServer &".lnk")
+Dim pDesk, sUName
+pDesk = oShell.SpecialFolders("Desktop")
+sUName = oShell.ExpandEnvironmentStrings("%USERNAME%")
+' Создаем массивы с путями и переменными
+Dim n 'количество элементов массива
+n = 3
+Dim aName(), aPath()
+ReDim aName(n), aPath(n)
+aName(0) = "fserver"
+aPath(0) = "\\" & aName(0)
+aName(1) = "СЛУЖЕБНАЯ_ПАПКА_МАСКОМ"
+aPath(1) = aPath(0) & "\mascom\" & aName(1)
+aName(2) = "CПРАВОЧНИК СОТРУДНИКА КОМПАНИИ"
+aPath(2) = aPath(1) & "\Документы компании и др . инфо\" & aName(2)
+aName(3) = sUName & " (10Гб)"
+aPath(3) = aPath(0) & "\" & sUName
+
+' Создание ярлыков:
+for i=0 to n 'цикл для массивов
+'On Error Resume Next
+Set oShellLink = oShell.CreateShortcut(pDesk & "\" & aName(i) & ".lnk")
 ' Целевой путь к файлу для которого создаётся ярлык:
-oShellLink.TargetPath = "\\" & sServer
+oShellLink.TargetPath = aPath(i)
 if Err.Number=0 then 
 	oShellLink.Save
-	Wscript.Echo "Ярлык на ФСЕРВЕР"
+	Wscript.Echo "Создан ярлык: " & aName(i)
 Else
 	Wscript.Echo "Код: "& CStr(Err.Number) & vbNewLine & Err.Description & vbNewLine & "Ошибка при создании ярлыка."
 End If
+next
 
-' ярлык на Служебная папка МАСКОМ
-On Error Resume Next
-set oShellLink = oShell.CreateShortcut(oShell.SpecialFolders("Desktop") & "\СЛУЖЕБНАЯ_ПАПКА_МАСКОМ.lnk")
-oShellLink.TargetPath = "\\" & sServer & "\mascom\СЛУЖЕБНАЯ_ПАПКА_МАСКОМ"
-if Err.Number=0 then
-	oShellLink.Save
-	Wscript.Echo "Ярлык на Служебную папку"
-Else
-	Wscript.Echo "Код: "& CStr(Err.Number) & vbNewLine & Err.Description & vbNewLine & "Ошибка при создании ярлыка."
-	DispErr Err.Number, Err.Description
-End If
-
-' Ярлык на Справочник сотрудника
-On Error Resume Next
-set oShellLink = oShell.CreateShortcut(oShell.SpecialFolders("Desktop") & "\CПРАВОЧНИК СОТРУДНИКА КОМПАНИИ.lnk")
-oShellLink.TargetPath = "\\" & sServer & "\mascom\СЛУЖЕБНАЯ_ПАПКА_МАСКОМ\Документы компании и др . инфо\CПРАВОЧНИК СОТРУДНИКА КОМПАНИИ"
-if Err.Number=0 then
-	oShellLink.Save
-	Wscript.Echo "Ярлык на Справочник"
-Else
-	Wscript.Echo "Код: "& CStr(Err.Number) & vbNewLine & Err.Description & vbNewLine & "Ошибка при создании ярлыка."
-	DispErr Err.Number, Err.Description
-End If
-
-' ярлык на свою папку на сервере с ограничением в 10 Гб
-On Error Resume Next
-set oShellLink = oShell.CreateShortcut(oShell.SpecialFolders("Desktop") + "\" + oShell.ExpandEnvironmentStrings("%USERNAME%") + " (10 Гб).lnk")
-oShellLink.TargetPath = "\\" & sServer & "\" & oShell.ExpandEnvironmentStrings("%USERNAME%")
-If Err.Number=0 then
-	oShellLink.Save
-	Wscript.Echo "Ярлык на Сетевую папку"
-Else
-	Wscript.Echo "Код: "& CStr(Err.Number) & vbNewLine & Err.Description & vbNewLine & "Ошибка при создании ярлыка."
-	DispErr Err.Number, Err.Description
-End If
 
 ' создаем папку для обмена файлами и выносим ярлык
 name="Папка для обмена файлами по сети"
-fPath = oShell.ExpandEnvironmentStrings("%USERPROFILE%") & "\Documents\" & name
+fPath = sUName & "\Documents\" & name
 Set fso=WScript.CreateObject("Scripting.FileSystemObject") 
 ' Если папки не существует, то создаем папку
 if Not fso.FolderExists(fPath) then fso.CreateFolder(fPath)
@@ -280,7 +264,7 @@ Set_RWEAccess = xRes
 End Function
 
 On Error Resume Next
-set oShellLink = oShell.CreateShortcut(oShell.SpecialFolders("Desktop") & "\" & name & ".lnk")
+set oShellLink = oShell.CreateShortcut(pDesk & "\" & name & ".lnk")
 oShellLink.TargetPath = fPath
 if Err.Number=0 then
 	oShellLink.Save
@@ -308,10 +292,7 @@ Wscript.Echo str
 oShell.Exec "cmd /q /c chcp 866>nul"
 WScript.Sleep(1000) 'необходимо для смены кодировки
 Wscript.Echo "Скрипт закончил работу"
-'if NoErrors=true then 
-'	oShell.AppActivate "Command Prompt"
-'	oShell.SendKeys "color 20~ pause~ exit~"
-'End If
+
 
 Wscript.Sleep(5000)
 
