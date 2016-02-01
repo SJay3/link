@@ -5,7 +5,7 @@
 ' Копирует url-ярлыки с сервера в избранное
 'Работает для Windows 7
 'Для ХР надо писать Мои Документы, при создании расшаренной папки
-' При включенном UAC на Windows 7 не расшаривается папка, т.к. происходит отказ в доступе
+'Может подглючивать создание ярлыка на справочник сотрудника компании. Непонятно с чем это связано, но возможно проблемы с кодировкой
 
 ' проверка сервера сценариев. Необходимо для того, что бы работал вывод StdOut в командную строку. Окошки неудобны(
 Dim objFS, objWShell, strTranslator
@@ -14,8 +14,12 @@ strTranslator = objFS.GetBaseName(WScript.FullName)
 'Wscript.Echo Wscript.ScriptFullName
 If StrComp(strTranslator, "wscript", vbTextCompare) = 0 Then
     WScript.Echo "Сервер сценариев по умолчанию: " & UCase(strTranslator) & vbNewLine & "Работаем в режиме перезапуска с другим сервером сценарие."
-    Set objWShell = CreateObject("WScript.Shell")
-    objWShell.Run "cmd /c echo off && chcp && cscript.exe """ & WScript.ScriptFullName & """", 1  ' cmd /c echo off && 
+    'Set objWShell = CreateObject("WScript.Shell")
+    'objWShell.Run "cmd /c echo off && chcp && cscript.exe """ & WScript.ScriptFullName & """", 1  ' cmd /c echo off && 
+
+	'перезапуск скрипта с правами администратора и с cscript
+	set objWShell = WScript.CreateObject("Shell.Application")
+	objWShell.ShellExecute "cmd.exe", "/c echo off && chcp && cscript.exe """ & WScript.ScriptFullName & """", "", "runas", 1
 	Wscript.Quit 0
 Else
     WScript.Echo "Сервер сценариев по умолчанию: " & UCase(strTranslator) & vbNewLine & "Работаем в штатном режиме."
