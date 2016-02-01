@@ -5,12 +5,13 @@
 ' Копирует url-ярлыки с сервера в избранное
 'Работает для Windows 7
 'Для ХР надо писать Мои Документы, при создании расшаренной папки
+' При включенном UAC на Windows 7 не расшаривается папка, т.к. происходит отказ в доступе
 
 ' проверка сервера сценариев. Необходимо для того, что бы работал вывод StdOut в командную строку. Окошки неудобны(
 Dim objFS, objWShell, strTranslator
 Set objFS = CreateObject("Scripting.FileSystemObject")
 strTranslator = objFS.GetBaseName(WScript.FullName)
-Wscript.Echo Wscript.ScriptFullName
+'Wscript.Echo Wscript.ScriptFullName
 If StrComp(strTranslator, "wscript", vbTextCompare) = 0 Then
     WScript.Echo "Сервер сценариев по умолчанию: " & UCase(strTranslator) & vbNewLine & "Работаем в режиме перезапуска с другим сервером сценарие."
     Set objWShell = CreateObject("WScript.Shell")
