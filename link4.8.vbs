@@ -1,11 +1,13 @@
 ' Скрипт по созданию ярлыков. Версия: 4.8
-' Выводит ошибки на экран и в командную строку.
-' Создает основные ярлыки
-' Создает расшареную папку для обмена и добавляет в нее разрешения
-' Копирует url-ярлыки с сервера в избранное
-'Работает для Windows 7
-'Для ХР надо писать Мои Документы, при создании расшаренной папки
-'Может подглючивать создание ярлыка на справочник сотрудника компании. Непонятно с чем это связано, но возможно проблемы с кодировкой
+' #Выводит ошибки на экран и в командную строку.
+' #Создает основные ярлыки
+' #Создает расшареную папку для обмена и добавляет в нее разрешения
+' #Копирует url-ярлыки с сервера в избранное
+'#Работает для Windows 7ъ
+' НЕДОРАБОТКИ:
+'-Для ХР надо писать Мои Документы, при создании расшаренной папки (будет исправлено в будущем)
+'-При использовании сервера сценариев версии ниже 5.8 не работает метод Exec (переделать xcopy)
+'-Может подглючивать создание ярлыка на справочник сотрудника компании. Непонятно с чем это связано, но возможно проблемы с кодировкой
 
 ' проверка сервера сценариев. Необходимо для того, что бы работал вывод StdOut в командную строку. Окошки неудобны(
 Dim objFS, objWShell, strTranslator
@@ -25,16 +27,6 @@ Else
     WScript.Echo "Сервер сценариев по умолчанию: " & UCase(strTranslator) & vbNewLine & "Работаем в штатном режиме."
 End If
 Set objWShell = Nothing: Set objFS = Nothing
-
-'set objWShell = CreateObject("Wscript.Shell")
-'objWShell.AppActivate "Command Prompt"
-'Wscript.Echo Wscript.Version
-'objWShell.SendKeys "color 8~ pause~"
-'Wscript.Sleep(3000)
-'Wscript.StdOut.Write "Test"
-'Wscript.Sleep(2000)
-'Wscript.Quit 0
-'objWShell.SendKeys "exit~"
 
 Dim NoErrors ' флаг ошибок
 NoErrors = true
@@ -174,12 +166,9 @@ aPath(3) = aPath(0) & "\" & sUName
 aName(4) = "Папка для обмена файлами по сети"
 aPath(4) = oShell.ExpandEnvironmentStrings("%USERPROFILE%") & "\Documents\" & aName(4)
 
-' создаем папку для обмена файлами
-'name="Папка для обмена файлами по сети"
-'fPath = oShell.ExpandEnvironmentStrings("%USERPROFILE%") & "\Documents\" & name
-
 for i=0 to n '----------------------#цикл для массивов#--------------
 if i=4 then '-------#if для обмена файлами#---------------
+	' создаем папку для обмена файлами
 	Set fso=WScript.CreateObject("Scripting.FileSystemObject") 
 	' Если папки не существует, то создаем папку
 	if Not fso.FolderExists(aPath(i)) then fso.CreateFolder(aPath(i))
